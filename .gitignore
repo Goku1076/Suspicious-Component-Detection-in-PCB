@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+
+runs/
+training_results/
+
+*.pt
+
+*.jpg
+*.png
+*.jpeg
+
+.idea/
+.vscode/
+
+.env
