@@ -1,72 +1,49 @@
 from ultralytics import YOLO
-import os
-import torch
+from pathlib import Path
+
+
+DATASET = Path("C:/AIML Project/datasets/6cls/data.yaml")
+MODEL = "yolov8n.pt"
+
+PROJECT = Path("runs")
+RUN_NAME = "pcb_detector"
+
+EPOCHS = 150
+IMAGE_SIZE = 640
+BATCH = 8
+
 
 def main():
-    # -----------------------------
-    # 1️⃣ Check GPU availability
-    # -----------------------------
-    print("✅ GPU detected:" if torch.cuda.is_available() else "❌ No GPU detected.")
-    if torch.cuda.is_available():
-        print("Using:", torch.cuda.get_device_name(0))
-
-    # -----------------------------
-    # 2️⃣ Paths & Config
-    # -----------------------------
-    BASE_PATH = r"C:/AIML Project/datasets/6cls"
-    DATA_YAML = os.path.join(BASE_PATH, "data.yaml")  # dataset YAML
-    SAVE_DIR = os.path.join(BASE_PATH, "training_results")  # folder to save runs
-
-    MODEL_YAML = "yolov8n.yaml"
-    EPOCHS = 150
-    BATCH_SIZE = 8
-    IMG_SIZE = 640
-    LR0 = 1e-4
-    OPTIMIZER = "SGD"
-
-    # -----------------------------
-    # 3️⃣ Initialize model
-    # -----------------------------
-    print("Initializing YOLOv8 model...")
-    model = YOLO(MODEL_YAML)
-
-    # -----------------------------
-    # 4️⃣ Train
-    # -----------------------------
-    print("Starting YOLOv8 training on GPU..." if torch.cuda.is_available() else "Starting YOLOv8 training on CPU...")
+    model = YOLO(MODEL)
 
     model.train(
-        data=DATA_YAML,
+        data=str(DATASET),
         epochs=EPOCHS,
-        batch=BATCH_SIZE,
-        imgsz=IMG_SIZE,
-        lr0=LR0,
-        optimizer=OPTIMIZER,
-        project=SAVE_DIR,
-        name="pcb_scratch",
-        exist_ok=True,
-        save_period=10,
-        device=0 if torch.cuda.is_available() else "cpu",
-        workers=0,  # 👈 fix multiprocessing crash on Windows
-        amp=True
+        imgsz=IMAGE_SIZE,
+        batch=BATCH,
+        project=str(PROJECT),
+        name=RUN_NAME,
+        device=0,
+        workers=4,
+        cache=True,
+        pretrained=True,
+        optimizer="auto",
+        patience=30,
+        save=True,
+        save_period=-1,
+        val=True,
+        plots=True,
+        verbose=True
     )
 
-    # -----------------------------
-    # 5️⃣ Evaluate & Plot
-    # -----------------------------
-    print("Training complete. Evaluating on validation set...")
-    metrics = model.val()
-    print(metrics)
+    print("\nTraining completed.\n")
 
-    model.plot_results()
-    print(f"Plots saved at {os.path.join(SAVE_DIR, 'pcb_scratch')}")
+    best_model = PROJECT / RUN_NAME / "weights" / "best.pt"
 
-    # -----------------------------
-    # 6️⃣ Save final model
-    # -----------------------------
-    final_model_path = os.path.join(SAVE_DIR, "pcb_scratch", "weights", "best_from_scratch.pt")
-    model.save(final_model_path)
-    print(f"Trained model saved at: {final_model_path}")
+    if best_model.exists():
+        print(f"Best model saved at:\n{best_model}")
+    else:
+        print("best.pt not found.")
 
 
 if __name__ == "__main__":
